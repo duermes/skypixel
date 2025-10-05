@@ -1,9 +1,14 @@
 "use client";
 
-import {useCallback, useEffect} from "react";
+import {useCallback, useEffect, useMemo} from "react";
 import dynamic from "next/dynamic";
 import {Loader2} from "lucide-react";
 import {useMapUI} from "@/context/map-ui-context";
+import {getOverlayDetail, getOverlayDetailsByBody, type PlanetaryBody} from "@/lib/lunar-overlays";
+
+function isPlanetaryBody(value: string): value is PlanetaryBody {
+  return ["moon", "mars", "vesta"].includes(value);
+}
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const Map = dynamic(() => import("./map"), {
@@ -28,7 +33,16 @@ export function SpaceMapViewer() {
     setDetailOverlayId,
   } = useMapUI();
 
-  const overlayDetailsAvailable = selectedLayer === "moon";
+  const currentBody = useMemo<PlanetaryBody | null>(
+    () => (isPlanetaryBody(selectedLayer) ? selectedLayer : null),
+    [selectedLayer],
+  );
+  const overlayDetailsAvailable = useMemo(() => {
+    if (!currentBody) {
+      return false;
+    }
+    return getOverlayDetailsByBody(currentBody).length > 0;
+  }, [currentBody]);
 
   useEffect(() => {
     if (!overlayDetailsAvailable) {
@@ -38,8 +52,10 @@ export function SpaceMapViewer() {
 
   const handleMarkerSelect = useCallback(
     (overlayId: string) => {
+      const detail = getOverlayDetail(overlayId);
+      const route = detail?.route ?? `/moon/${overlayId}`;
       setDetailOverlayId(overlayId);
-      requestNavigation({type: "detail", overlayId, route: `/moon/${overlayId}`});
+      requestNavigation({type: "detail", overlayId, route});
     },
     [requestNavigation, setDetailOverlayId],
   );

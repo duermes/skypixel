@@ -9,13 +9,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {useMemo} from "react";
 import {useMapUI} from "@/context/map-ui-context";
+import {getOverlayDetailsByBody, type PlanetaryBody} from "@/lib/lunar-overlays";
 
 const LAYER_OPTIONS = [
   {value: "moon", label: "Lunar Map"},
   {value: "mars", label: "Mars Viking Mosaic"},
   {value: "vesta", label: "Vesta View"},
 ];
+
+const BODY_LABELS: Record<PlanetaryBody, {adjective: string; proper: string}> = {
+  moon: {adjective: "lunar", proper: "Moon"},
+  mars: {adjective: "martian", proper: "Mars"},
+  vesta: {adjective: "vestan", proper: "Vesta"},
+};
+
+function isPlanetaryBody(value: string): value is PlanetaryBody {
+  return ["moon", "mars", "vesta"].includes(value);
+}
 
 export function MapControls() {
   const {
@@ -29,8 +41,16 @@ export function MapControls() {
 
   const latText = cursorPosition ? cursorPosition.lat.toFixed(4) : "--";
   const lngText = cursorPosition ? cursorPosition.lng.toFixed(4) : "--";
-  const markersAvailable = selectedLayer === "moon";
-  const displayHoveredOverlay = markersAvailable ? hoveredOverlay : null;
+
+  const overlaysForLayer = useMemo(() => {
+    if (!isPlanetaryBody(selectedLayer)) {
+      return [];
+    }
+    return getOverlayDetailsByBody(selectedLayer);
+  }, [selectedLayer]);
+
+  const markersAvailable = overlaysForLayer.length > 0;
+  const displayHoveredOverlay = hoveredOverlay && hoveredOverlay.body === selectedLayer ? hoveredOverlay : null;
   const overlayCardActive = Boolean(displayHoveredOverlay);
   const overlayContainerClasses = `mt-3 rounded border px-3 py-2 text-xs transition ${
     overlayCardActive
@@ -44,16 +64,17 @@ export function MapControls() {
         displayHoveredOverlay.maxNativeZoom,
       ].filter((value): value is number => typeof value === "number")
     : [];
+  const layerBodyLabel = (isPlanetaryBody(selectedLayer) && BODY_LABELS[selectedLayer]) || null;
   const overlayTitle = displayHoveredOverlay
     ? displayHoveredOverlay.label
-    : markersAvailable
-      ? "Hover a lunar marker"
+    : markersAvailable && layerBodyLabel
+      ? `Hover a ${layerBodyLabel.adjective} marker`
       : "Marker insights unavailable";
   const overlayDescription = displayHoveredOverlay
     ? `Recommended zoom: ${displayHoveredOverlay.targetZoom ?? displayHoveredOverlay.activationZoom + 2}`
-    : markersAvailable
-      ? "Move the pointer over a blue marker to preview its detail tile."
-      : "Switch back to the Lunar Map to explore detailed NAC overlays.";
+    : markersAvailable && layerBodyLabel
+      ? `Move the pointer over a blue marker to preview ${layerBodyLabel.adjective} detail tiles.`
+      : "Select a dataset with detail overlays to enable marker insights.";
   const overlayZoomSummary = displayHoveredOverlay
     ? hoveredZoomHints.length
       ? `Tile limit: up to zoom ${Math.min(...hoveredZoomHints)}`
@@ -62,7 +83,7 @@ export function MapControls() {
 
   const handleLayerChange = (layer: string) => {
     setSelectedLayer(layer);
-    if (layer !== "moon" && detailOverlayId) {
+    if (detailOverlayId) {
       setDetailOverlayId(null);
     }
   };

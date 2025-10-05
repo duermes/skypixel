@@ -6,11 +6,11 @@ import {getOverlayDetail, getOverlayDetailsByBody, type PlanetaryBody} from "@/l
 
 type OverlayDetailParams = {overlayId: string};
 
-interface OverlayDetailPageProps {
+type OverlayDetailPageProps = {
   params: Promise<OverlayDetailParams>;
-}
+};
 
-const BODY: PlanetaryBody = "moon";
+const BODY: PlanetaryBody = "vesta";
 
 export function generateStaticParams() {
   return getOverlayDetailsByBody(BODY).map((detail) => ({overlayId: detail.id}));
@@ -22,7 +22,7 @@ export async function generateMetadata({params}: OverlayDetailPageProps): Promis
 
   if (!detail || detail.body !== BODY) {
     return {
-      title: "Lunar overlay",
+      title: "Vesta overlay",
     };
   }
 

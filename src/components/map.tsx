@@ -1,22 +1,13 @@
 "use client";
 
 import {memo, useCallback, useEffect, useMemo, useRef, useState} from "react";
-import {
-  CircleMarker,
-  MapContainer,
-  Rectangle,
-  TileLayer,
-  Tooltip,
-  useMap,
-  useMapEvents,
-} from "react-leaflet";
+import {CircleMarker, MapContainer, TileLayer, Tooltip, useMap, useMapEvents} from "react-leaflet";
 import type {
   CRS,
   LatLngBounds,
   LatLngBoundsLiteral,
   LatLngBoundsExpression,
   LatLngExpression,
-  PathOptions,
   TileLayerOptions,
   CircleMarker as LeafletCircleMarker,
 } from "leaflet";
@@ -38,10 +29,16 @@ import {
   SCHRODINGER_SC_BOUNDS,
   SCHRODINGER_SE_BOUNDS,
 } from "@/lib/lunar-geometries";
-import {getLunarOverlayDetail} from "@/lib/lunar-overlays";
+import {
+  getOverlayDetail,
+  getOverlayDetailsByBody,
+  type PlanetaryBody,
+  type PlanetaryOverlayDetail,
+} from "@/lib/lunar-overlays";
 
 type MarkerHoverInfo = {
   id: string;
+  body: PlanetaryBody;
   label: string;
   activationZoom: number;
   targetZoom?: number;
@@ -77,7 +74,6 @@ type LayerConfig = {
     maxBoundsViscosity?: number;
   };
   overlays?: OverlayConfig[];
-  highlight?: HighlightConfig;
 };
 
 type OverlayConfig = {
@@ -86,11 +82,6 @@ type OverlayConfig = {
   attribution?: string;
   tileOptions?: TileLayerOptions;
   interactive?: OverlayInteractiveConfig;
-};
-
-type HighlightConfig = {
-  bounds: LatLngBoundsExpression;
-  options?: PathOptions;
 };
 
 type OverlayInteractiveConfig = {
@@ -321,17 +312,6 @@ const MOON_LAYER: LayerConfig = {
       },
     },
   ],
-  highlight: {
-    bounds: SCHRODINGER_BBOX,
-    options: {
-      color: "#22c55e",
-      weight: 2.5,
-      opacity: 0.85,
-      fillOpacity: 0.35,
-      fillColor: "#22c55e",
-      className: "schrodinger-highlight",
-    },
-  },
 };
 
 const MARS_MAX_BOUNDS = latLngBounds([-90, -180], [90, 180]);
@@ -394,6 +374,12 @@ const LAYERS: Record<string, LayerConfig> = {
   vesta: VESTA_LAYER,
 };
 
+const PLANETARY_BODIES: PlanetaryBody[] = ["moon", "mars", "vesta"];
+
+function isPlanetaryBody(value: string): value is PlanetaryBody {
+  return PLANETARY_BODIES.includes(value as PlanetaryBody);
+}
+
 function MapResizer() {
   const map = useMap();
 
@@ -435,6 +421,7 @@ function MapCursorTracker({
 
 type InteractiveMarkerDescriptor = {
   id: string;
+  body: PlanetaryBody;
   label: string;
   bounds: LatLngBounds;
   center: LatLngExpression;
@@ -442,6 +429,7 @@ type InteractiveMarkerDescriptor = {
   targetZoom?: number;
   maxZoom?: number;
   maxNativeZoom?: number;
+  detail: PlanetaryOverlayDetail;
 };
 
 const InteractiveOverlayMarkers = memo(function InteractiveOverlayMarkers({
@@ -533,6 +521,7 @@ const InteractiveOverlayMarkers = memo(function InteractiveOverlayMarkers({
 
         const hoverInfo: MarkerHoverInfo = {
           id,
+          body: descriptor.body,
           label,
           activationZoom,
           targetZoom,
@@ -613,8 +602,9 @@ function DetailZoomController({
       lastDetailId.current = null;
       return;
     }
-    if (layer.id !== "moon") return;
-
+      if (!isPlanetaryBody(layer.id) || descriptor.body !== layer.id) {
+        return;
+      }
     if (lastDetailId.current === descriptor.id) {
       return;
     }
@@ -663,7 +653,7 @@ function OverviewResetController({
     const previous = previousDetailId.current;
     previousDetailId.current = detailOverlayId;
 
-    if (layer.id !== "moon") {
+    if (!isPlanetaryBody(layer.id)) {
       return;
     }
 
@@ -694,47 +684,60 @@ export default function Map({
     url,
     attribution,
     overlays,
-    highlight,
   } = layer;
+  const overlayDetails = useMemo<PlanetaryOverlayDetail[]>(() => {
+    if (!isPlanetaryBody(layer.id)) {
+      return [];
+    }
+    return getOverlayDetailsByBody(layer.id);
+  }, [layer.id]);
+
   const interactiveDescriptors = useMemo<InteractiveMarkerDescriptor[]>(() => {
-    if (!overlays?.length) return [];
+    if (!overlayDetails.length) return [];
 
-    const result: InteractiveMarkerDescriptor[] = [];
+    const maxZoomFallback = tileOptions?.maxZoom ?? view.maxZoom ?? 12;
+    const minZoomFallback = tileOptions?.minZoom ?? view.minZoom ?? 0;
+    const descriptors: InteractiveMarkerDescriptor[] = [];
 
-    for (const overlay of overlays) {
-      const interactive = overlay.interactive;
-      const boundsExpression = overlay.tileOptions?.bounds;
+    for (const detail of overlayDetails) {
+      const wmts = detail.wmts;
+      if (!wmts) continue;
 
-      if (!interactive || !boundsExpression) {
-        continue;
-      }
-
-      const bounds = toLeafletBounds(boundsExpression);
+      const bounds = toLeafletBounds(wmts.bbox);
       const centerPoint = bounds.getCenter();
+      const defaultActivationZoom = Math.min(
+        (wmts.minZoom ?? minZoomFallback) + 2,
+        wmts.maxZoom ?? maxZoomFallback,
+      );
+      const activationZoom = detail.marker?.activationZoom ?? defaultActivationZoom;
+      const targetZoom = detail.marker?.targetZoom ?? Math.min(activationZoom + 2, wmts.maxZoom ?? maxZoomFallback);
 
-      result.push({
-        id: overlay.id,
-        label: interactive.label,
+      descriptors.push({
+        id: detail.id,
+        body: detail.body,
+        detail,
+        label: detail.title,
         bounds,
         center: [centerPoint.lat, centerPoint.lng] as LatLngExpression,
-        activationZoom: interactive.activationZoom,
-        targetZoom: interactive.targetZoom,
-        maxZoom: overlay.tileOptions?.maxZoom,
-        maxNativeZoom: overlay.tileOptions?.maxNativeZoom,
+        activationZoom,
+        targetZoom,
+        maxZoom: wmts.maxZoom,
+        maxNativeZoom: wmts.maxNativeZoom,
       });
     }
 
-    return result;
-  }, [overlays]);
+    return descriptors;
+  }, [overlayDetails, tileOptions, view.maxZoom, view.minZoom]);
 
   const hasInteractiveOverlays = interactiveDescriptors.length > 0;
+  const highlightEnabled = showHighlight && hasInteractiveOverlays && typeof onMarkerSelect === "function";
 
   const detailDescriptor = useMemo<InteractiveMarkerDescriptor | undefined>(() => {
     if (!detailOverlayId) return undefined;
     return interactiveDescriptors.find((descriptor) => descriptor.id === detailOverlayId) ?? undefined;
   }, [detailOverlayId, interactiveDescriptors]);
 
-  const detailMeta = detailOverlayId ? getLunarOverlayDetail(detailOverlayId) : undefined;
+  const detailMeta = detailOverlayId ? getOverlayDetail(detailOverlayId) : undefined;
   const detailWmts = detailMeta?.wmts;
 
   return (
@@ -786,19 +789,12 @@ export default function Map({
           />
         );
       })}
-      {showHighlight && hasInteractiveOverlays && (
+      {highlightEnabled && (
         <InteractiveOverlayMarkers
           descriptors={interactiveDescriptors}
-          enabled={showHighlight}
-          onHover={showHighlight ? onMarkerHover : undefined}
+          enabled={highlightEnabled}
+          onHover={highlightEnabled ? onMarkerHover : undefined}
           onSelect={onMarkerSelect}
-        />
-      )}
-      {showHighlight && !hasInteractiveOverlays && highlight && (
-        <Rectangle
-          bounds={highlight.bounds}
-          pathOptions={highlight.options}
-          interactive={false}
         />
       )}
     </MapContainer>

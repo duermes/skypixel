@@ -4,11 +4,11 @@ import {useEffect, useState} from "react";
 import Image from "next/image";
 import {Sparkles} from "lucide-react";
 import {useMapUI} from "@/context/map-ui-context";
-import {getLunarOverlayDetail, getOverlayDetailPreview} from "@/lib/lunar-overlays";
+import {getOverlayDetail, getOverlayDetailPreview} from "@/lib/lunar-overlays";
 
 export function OverlayDetailPanel() {
   const {detailOverlayId} = useMapUI();
-  const detail = detailOverlayId ? getLunarOverlayDetail(detailOverlayId) : undefined;
+  const detail = detailOverlayId ? getOverlayDetail(detailOverlayId) : undefined;
   const preview = detail ? getOverlayDetailPreview(detail) : null;
   const [previewError, setPreviewError] = useState(false);
   const datasetLink = detail?.wmts ? `${detail.wmts.endpoint}` : null;

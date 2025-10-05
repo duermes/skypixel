@@ -3,6 +3,7 @@
 import {useEffect} from "react";
 import {usePathname, useRouter} from "next/navigation";
 import {useMapUI} from "@/context/map-ui-context";
+import {getOverlayDetail} from "@/lib/lunar-overlays";
 import {MapHeader} from "./map-header";
 import {MapControls} from "./map-controls";
 import {OverlayDetailPanel} from "./overlay-detail-panel";
@@ -25,8 +26,11 @@ function NavigationBridge() {
     const {route, type} = navigationRequest;
 
     if (type === "detail") {
-      setSelectedLayer("moon");
-      setDetailOverlayId(navigationRequest.overlayId);
+      const detail = getOverlayDetail(navigationRequest.overlayId);
+      if (detail) {
+        setSelectedLayer(detail.body);
+        setDetailOverlayId(detail.id);
+      }
     }
 
     if (type === "back") {

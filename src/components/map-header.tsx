@@ -2,12 +2,24 @@
 
 import {ArrowLeft, Rocket} from "lucide-react";
 import {useMapUI} from "@/context/map-ui-context";
-import {getLunarOverlayDetail} from "@/lib/lunar-overlays";
+import {getOverlayDetail, type PlanetaryBody} from "@/lib/lunar-overlays";
+
+const BODY_LABELS: Record<PlanetaryBody, {adjective: string; proper: string}> = {
+  moon: {adjective: "lunar", proper: "Moon"},
+  mars: {adjective: "martian", proper: "Mars"},
+  vesta: {adjective: "vestan", proper: "Vesta"},
+};
+
+function isPlanetaryBody(value: string): value is PlanetaryBody {
+  return ["moon", "mars", "vesta"].includes(value);
+}
 
 export function MapHeader() {
-  const {detailOverlayId, requestNavigation, setDetailOverlayId} = useMapUI();
-  const detail = detailOverlayId ? getLunarOverlayDetail(detailOverlayId) : undefined;
+  const {detailOverlayId, requestNavigation, setDetailOverlayId, selectedLayer} = useMapUI();
+  const detail = detailOverlayId ? getOverlayDetail(detailOverlayId) : undefined;
   const datasetLink = detail?.wmts ? `${detail.wmts.endpoint}` : null;
+  const layerBody = detail?.body ?? (isPlanetaryBody(selectedLayer) ? selectedLayer : "moon");
+  const bodyCopy = BODY_LABELS[layerBody];
 
   const handleBack = () => {
     setDetailOverlayId(null);
@@ -23,8 +35,8 @@ export function MapHeader() {
               <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Stellar Explorer</h1>
-              <p className="text-xs text-muted-foreground">Interactive Space Map Viewer</p>
+              <h1 className="text-xl font-bold text-foreground">Skypixel</h1>
+              <p className="text-xs text-muted-foreground">See more. Explore deeper</p>
             </div>
           </div>
 
@@ -77,14 +89,14 @@ export function MapHeader() {
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">Mission focus</p>
                 <p className="mt-2 text-sm font-medium text-foreground">{detail.missionFocus}</p>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Route locked on NAC swath. Use the control panel to explore adjacent overlays or return to the lunar overview.
+                  Route locked on {bodyCopy.adjective} detail. Use the control panel to explore adjacent overlays or return to the overview.
                 </p>
               </div>
             )}
           </div>
         ) : (
           <div className="mt-6 text-xs text-muted-foreground">
-            Navigate the lunar surface, hover markers for NAC tips, and click to dive into mission-ready detail tiles.
+            Navigate the {bodyCopy.adjective} surface, hover markers for tips, and click to dive into mission-ready detail tiles.
           </div>
         )}
       </div>

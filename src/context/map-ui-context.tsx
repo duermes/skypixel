@@ -1,11 +1,13 @@
 "use client";
 
 import {createContext, useCallback, useContext, useMemo, useState} from "react";
+import type {PlanetaryBody} from "@/lib/lunar-overlays";
 
 export type LatLng = {lat: number; lng: number};
 
 export type MarkerHoverInfo = {
   id: string;
+  body: PlanetaryBody;
   label: string;
   activationZoom: number;
   targetZoom?: number;
