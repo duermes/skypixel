@@ -12,13 +12,16 @@ export function MapHeader() {
             <Rocket className="h-5 w-5 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">Skymaper</h1>
+            <h1 className="text-xl font-bold text-foreground">
+              Stellar Explorer
+            </h1>
             <p className="text-xs text-muted-foreground">
               Interactive Space Map Viewer
             </p>
           </div>
         </div>
 
+        {/* Stats grid */}
       </div>
     </div>
   );
