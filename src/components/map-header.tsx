@@ -1,6 +1,7 @@
 "use client";
 
-import {ArrowLeft, Rocket} from "lucide-react";
+import {useEffect, useState} from "react";
+import {ArrowLeft, ChevronDown, ChevronUp, Rocket} from "lucide-react";
 import {useMapUI} from "@/context/map-ui-context";
 import {getOverlayDetail, type PlanetaryBody} from "@/lib/lunar-overlays";
 
@@ -20,6 +21,11 @@ export function MapHeader() {
   const datasetLink = detail?.wmts ? `${detail.wmts.endpoint}` : null;
   const layerBody = detail?.body ?? (isPlanetaryBody(selectedLayer) ? selectedLayer : "moon");
   const bodyCopy = BODY_LABELS[layerBody];
+  const [isFocusedCollapsed, setIsFocusedCollapsed] = useState(false);
+
+  useEffect(() => {
+    setIsFocusedCollapsed(false);
+  }, [detail?.id]);
 
   const handleBack = () => {
     setDetailOverlayId(null);
@@ -53,44 +59,63 @@ export function MapHeader() {
         </div>
 
         {detail ? (
-          <div className="mt-6 grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <div className="rounded-xl border border-border/50 bg-background/70 p-4 shadow-md shadow-sky-900/30">
-              <p className="text-xs uppercase tracking-wide text-sky-300/80">Focused overlay</p>
-              <p className="mt-1 text-lg font-semibold text-foreground">{detail.title}</p>
-              <p className="mt-2 text-sm text-muted-foreground">{detail.summary}</p>
-              {detail.wmts && (
-                <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
-                  <p>
-                    <span className="font-medium text-foreground/80">Layer ID:</span> {detail.wmts.layerId}
-                  </p>
-                  <p>
-                    <span className="font-medium text-foreground/80">Tile matrix:</span> {detail.wmts.tileMatrixSet}
-                  </p>
-                  <p className="break-words">
-                    <span className="font-medium text-foreground/80">BBOX:</span> {detail.wmts.bbox[0][1].toFixed(4)},{" "}
-                    {detail.wmts.bbox[0][0].toFixed(4)} → {detail.wmts.bbox[1][1].toFixed(4)},{" "}
-                    {detail.wmts.bbox[1][0].toFixed(4)}
-                  </p>
-                  {datasetLink && (
-                    <a
-                      href={datasetLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-sky-300 transition hover:text-sky-200"
-                    >
-                      Abrir endpoint WMTS
-                    </a>
+          <div className="mt-6 space-y-3">
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsFocusedCollapsed((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-full border border-border/40 bg-background/70 px-4 py-2 text-xs font-medium text-foreground shadow-sm transition hover:border-border/60 hover:bg-background/80"
+                aria-expanded={!isFocusedCollapsed}
+              >
+                {isFocusedCollapsed ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronUp className="h-3.5 w-3.5" />}
+                {isFocusedCollapsed ? "Show focused overlay info" : "Hide focused overlay info"}
+              </button>
+            </div>
+            {isFocusedCollapsed ? (
+              <div className="rounded-lg border border-border/40 bg-background/70 px-4 py-3 text-xs text-muted-foreground shadow-sm">
+                Focused overlay details hidden. Use the toggle above to bring them back when you need quick reference.
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="rounded-xl border border-border/50 bg-background/70 p-4 shadow-md shadow-sky-900/30">
+                  <p className="text-xs uppercase tracking-wide text-sky-300/80">Focused overlay</p>
+                  <p className="mt-1 text-lg font-semibold text-foreground">{detail.title}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{detail.summary}</p>
+                  {detail.wmts && (
+                    <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
+                      <p>
+                        <span className="font-medium text-foreground/80">Layer ID:</span> {detail.wmts.layerId}
+                      </p>
+                      <p>
+                        <span className="font-medium text-foreground/80">Tile matrix:</span> {detail.wmts.tileMatrixSet}
+                      </p>
+                      <p className="break-words">
+                        <span className="font-medium text-foreground/80">BBOX:</span> {detail.wmts.bbox[0][1].toFixed(4)}, {" "}
+                        {detail.wmts.bbox[0][0].toFixed(4)} → {detail.wmts.bbox[1][1].toFixed(4)}, {" "}
+                        {detail.wmts.bbox[1][0].toFixed(4)}
+                      </p>
+                      {datasetLink && (
+                        <a
+                          href={datasetLink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-1 text-sky-300 transition hover:text-sky-200"
+                        >
+                          Abrir endpoint WMTS
+                        </a>
+                      )}
+                    </div>
                   )}
                 </div>
-              )}
-            </div>
-            {detail.missionFocus && (
-              <div className="rounded-xl border border-border/40 bg-background/60 p-4 shadow-md">
-                <p className="text-xs uppercase tracking-wide text-muted-foreground">Mission focus</p>
-                <p className="mt-2 text-sm font-medium text-foreground">{detail.missionFocus}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Route locked on {bodyCopy.adjective} detail. Use the control panel to explore adjacent overlays or return to the overview.
-                </p>
+                {detail.missionFocus && (
+                  <div className="rounded-xl border border-border/40 bg-background/60 p-4 shadow-md">
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Mission focus</p>
+                    <p className="mt-2 text-sm font-medium text-foreground">{detail.missionFocus}</p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      Route locked on {bodyCopy.adjective} detail. Use the control panel to explore adjacent overlays or return to the overview.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </div>
