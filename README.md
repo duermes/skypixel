@@ -16,6 +16,16 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+### NASA WMTS keys
+
+The lunar and Martian imagery layers are served by NASA Trek WMTS services. To avoid rate limits, create a `.env.local` file and add your API key:
+
+```bash
+NEXT_PUBLIC_NASA_API_KEY=your_key_here
+```
+
+Without a key the app falls back to unauthenticated requests, subject to NASA’s public limits.
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

@@ -33,6 +33,10 @@ type LayerConfig = {
   };
 };
 
+const NASA_API_KEY = process.env.NEXT_PUBLIC_NASA_API_KEY;
+const withNASAKey = (url: string) =>
+  NASA_API_KEY ? `${url}?api_key=${NASA_API_KEY}` : url;
+
 const EARTH_LAYER: LayerConfig = {
   id: "earth",
   url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -42,9 +46,10 @@ const EARTH_LAYER: LayerConfig = {
     maxZoom: 19,
   },
   view: {
-    center: [51.505, -0.09],
-    zoom: 5,
-    minZoom: 2,
+    center: [0, 0],
+    zoom: 2,
+    minZoom: 1,
+    maxZoom: 19,
   },
 };
 
@@ -74,12 +79,67 @@ const MOON_LAYER: LayerConfig = {
   },
 };
 
+const MARS_MAX_BOUNDS = latLngBounds([-90, -180], [90, 180]);
+
+const MARS_LAYER: LayerConfig = {
+  id: "mars",
+  url: withNASAKey(
+    "https://api.nasa.gov/mars-wmts/catalog/Mars_Viking_MDIM21_ClrMosaic_global_232m/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  ),
+  attribution:
+    'Imagery courtesy NASA/JPL/USGS <a href="https://trek.nasa.gov/">Trek</a>',
+  tileOptions: {
+    maxZoom: 9,
+    maxNativeZoom: 9,
+    minZoom: 0,
+    noWrap: true,
+  },
+  view: {
+    center: [0, 0],
+    zoom: 2,
+    minZoom: 0,
+    maxZoom: 9,
+  },
+  map: {
+    crs: LeafletCRS.EPSG4326,
+    maxBounds: MARS_MAX_BOUNDS,
+    maxBoundsViscosity: 0.8,
+  },
+};
+
+const VESTA_MAX_BOUNDS = latLngBounds([-90, -180], [90, 180]);
+
+const VESTA_LAYER: LayerConfig = {
+  id: "vesta",
+  url: "https://trek.nasa.gov/tiles/Vesta/EQ/Vesta_Dawn_FC_HAMO_Mosaic_Global_74ppd/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  attribution:
+    'Imagery courtesy NASA/JPL/USGS <a href="https://trek.nasa.gov/">Trek</a>',
+  tileOptions: {
+    maxZoom: 8,
+    maxNativeZoom: 8,
+    minZoom: 0,
+    noWrap: true,
+  },
+  view: {
+    center: [0, 0],
+    zoom: 2,
+    minZoom: 0,
+    maxZoom: 8,
+  },
+  map: {
+    crs: LeafletCRS.EPSG4326,
+    maxBounds: VESTA_MAX_BOUNDS,
+    maxBoundsViscosity: 0.8,
+  },
+};
+
+
 const LAYERS: Record<string, LayerConfig> = {
-  default: EARTH_LAYER,
+  default: MOON_LAYER,
   earth: EARTH_LAYER,
   moon: MOON_LAYER,
-  mars: EARTH_LAYER,
-  stars: EARTH_LAYER,
+  mars: MARS_LAYER,
+  vesta: VESTA_LAYER,
 };
 
 function MapResizer() {
