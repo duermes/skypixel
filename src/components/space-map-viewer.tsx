@@ -7,7 +7,7 @@ import {MapHeader} from "./map-header";
 import {Loader2} from "lucide-react";
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
-const InteractiveMap = dynamic(() => import("./interactive-map"), {
+const Map = dynamic(() => import("./map"), {
   ssr: false,
   loading: () => (
     <div className="flex h-full w-full items-center justify-center bg-background">
@@ -19,21 +19,43 @@ const InteractiveMap = dynamic(() => import("./interactive-map"), {
   ),
 });
 
+
+
 export function SpaceMapViewer() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedLayer, setSelectedLayer] = useState("earth");
+  const [selectedLayer, setSelectedLayer] = useState("moon");
+
+  // useEffect(() => {
+  //   let mounted = true;
+  //   let objectUrl: string | null = null;
+  
+  //   (async () => {
+  //     try {
+  //       const res = await fetch(
+  //         `http://moontrek.jpl.nasa.gov/trektiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/0/0/0.jpg`
+  //        );
+  //       const blob = await res.blob();
+  //       objectUrl = URL.createObjectURL(blob);
+  //       if (mounted) setImageUrl(objectUrl);
+  //     } catch (e) {
+  //       console.error("Failed to fetch preview image", e);
+  //     }
+  //   })();
+
+  //   return () => {
+  //     mounted = false;
+  //     if (objectUrl) URL.revokeObjectURL(objectUrl);
+  //   };
+  // }, []);
 
   return (
-    <div className="relative h-full w-full">
+    <div className="relative flex min-h-[100svh] w-full flex-1 flex-col overflow-hidden">
       <MapHeader />
 
-      <div className="h-full w-full">
-        <InteractiveMap selectedLayer={selectedLayer} />
+      <div className="relative flex-1">
+        <Map selectedLayer={selectedLayer} />
       </div>
 
       <MapControls
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
         selectedLayer={selectedLayer}
         onLayerChange={setSelectedLayer}
       />
