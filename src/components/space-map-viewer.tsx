@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import dynamic from "next/dynamic";
 import {MapControls} from "./map-controls";
 import {MapHeader} from "./map-header";
@@ -23,6 +23,26 @@ const Map = dynamic(() => import("./map"), {
 
 export function SpaceMapViewer() {
   const [selectedLayer, setSelectedLayer] = useState("moon");
+  const [cursorPosition, setCursorPosition] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [hoveredOverlay, setHoveredOverlay] = useState<{
+    id: string;
+    label: string;
+    activationZoom: number;
+    targetZoom?: number;
+    maxZoom?: number;
+    maxNativeZoom?: number;
+  } | null>(null);
+
+  const overlayDetailsAvailable = selectedLayer === "moon";
+
+  useEffect(() => {
+    if (!overlayDetailsAvailable) {
+      setHoveredOverlay(null);
+    }
+  }, [overlayDetailsAvailable]);
 
   // useEffect(() => {
   //   let mounted = true;
@@ -52,12 +72,18 @@ export function SpaceMapViewer() {
       <MapHeader />
 
       <div className="relative flex-1">
-        <Map selectedLayer={selectedLayer} />
+        <Map
+          selectedLayer={selectedLayer}
+          onCursorMove={setCursorPosition}
+          onMarkerHover={overlayDetailsAvailable ? setHoveredOverlay : undefined}
+        />
       </div>
 
       <MapControls
         selectedLayer={selectedLayer}
         onLayerChange={setSelectedLayer}
+        cursorPosition={cursorPosition}
+        hoveredOverlay={overlayDetailsAvailable ? hoveredOverlay : null}
       />
     </div>
   );
