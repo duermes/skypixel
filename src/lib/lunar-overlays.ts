@@ -55,7 +55,8 @@ export type LunarOverlayDetail = PlanetaryOverlayDetail;
 
 const DEFAULT_TILE_MATRIX_SET = "default028mm";
 
-const resolveLayerId = (endpoint: string) => endpoint.split("/").filter(Boolean).pop() ?? "";
+const resolveLayerId = (endpoint: string) =>
+  endpoint.split("/").filter(Boolean).pop() ?? "";
 
 type OverlayDetailOptions = {
   missionFocus?: string;
@@ -68,7 +69,7 @@ const createOverlayDetail = (
   id: string,
   title: string,
   summary: string,
-  options: OverlayDetailOptions = {},
+  options: OverlayDetailOptions = {}
 ): PlanetaryOverlayDetail => {
   const {missionFocus, wmts, marker} = options;
 
@@ -109,7 +110,7 @@ const toTileIndices = (lat: number, lng: number, zoom: number) => {
 
 export function getOverlayDetailPreview(
   detail: PlanetaryOverlayDetail,
-  zoom = detail.wmts?.maxNativeZoom ?? detail.wmts?.maxZoom ?? 10,
+  zoom = detail.wmts?.maxNativeZoom ?? detail.wmts?.maxZoom ?? 10
 ): PreviewTile | null {
   const wmts = detail.wmts;
   if (!wmts) return null;
@@ -134,8 +135,8 @@ export function getOverlayDetailPreview(
   };
 }
 
-const BASE_MARS_ENDPOINT = "https://trek.nasa.gov/tiles/Mars/EQ/Mars_Viking_MDIM21_ClrMosaic_global_232m";
-const BASE_VESTA_ENDPOINT = "https://trek.nasa.gov/tiles/Vesta/EQ/Vesta_Dawn_FC_HAMO_Mosaic_Global_74ppd";
+const BASE_VESTA_ENDPOINT =
+  "https://trek.nasa.gov/tiles/Vesta/EQ/Vesta_Dawn_FC_HAMO_Mosaic_Global_74ppd";
 
 const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
   "moon-schrodinger-nac": createOverlayDetail(
@@ -156,7 +157,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 12,
         maxNativeZoom: 12,
       },
-    },
+    }
   ),
   "moon-schrodinger-extras": createOverlayDetail(
     "moon",
@@ -169,13 +170,14 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         targetZoom: 11,
       },
       wmts: {
-        endpoint: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.extraswaths.eq",
+        endpoint:
+          "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.extraswaths.eq",
         bbox: SCHRODINGER_EXTRA_SWATHS_BOUNDS,
         minZoom: 6,
         maxZoom: 11,
         maxNativeZoom: 11,
       },
-    },
+    }
   ),
   "moon-schrodinger-landing": createOverlayDetail(
     "moon",
@@ -189,13 +191,14 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         targetZoom: 12,
       },
       wmts: {
-        endpoint: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_NAC_SchrodingerLandingSite2",
+        endpoint:
+          "https://trek.nasa.gov/tiles/Moon/EQ/LRO_NAC_SchrodingerLandingSite2",
         bbox: SCHRODINGER_LANDING_BOUNDS,
         minZoom: 7,
         maxZoom: 12,
         maxNativeZoom: 12,
       },
-    },
+    }
   ),
   "moon-schrodinger-ne": createOverlayDetail(
     "moon",
@@ -214,7 +217,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 11,
         maxNativeZoom: 11,
       },
-    },
+    }
   ),
   "moon-schrodinger-sc": createOverlayDetail(
     "moon",
@@ -233,7 +236,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 11,
         maxNativeZoom: 11,
       },
-    },
+    }
   ),
   "moon-schrodinger-se": createOverlayDetail(
     "moon",
@@ -252,7 +255,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 12,
         maxNativeZoom: 12,
       },
-    },
+    }
   ),
   "moon-schrodinger-mare-unit": createOverlayDetail(
     "moon",
@@ -265,13 +268,14 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         targetZoom: 12,
       },
       wmts: {
-        endpoint: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMareUnit_50cmV1.0.eq",
+        endpoint:
+          "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMareUnit_50cmV1.0.eq",
         bbox: SCHRODINGER_MARE_UNIT_BOUNDS,
         minZoom: 7,
         maxZoom: 12,
         maxNativeZoom: 12,
       },
-    },
+    }
   ),
   "moon-schrodinger-massif": createOverlayDetail(
     "moon",
@@ -284,13 +288,14 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         targetZoom: 12,
       },
       wmts: {
-        endpoint: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMassif_50cmV1.0.eq",
+        endpoint:
+          "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMassif_50cmV1.0.eq",
         bbox: SCHRODINGER_MASSIF_BOUNDS,
         minZoom: 7,
         maxZoom: 12,
         maxNativeZoom: 12,
       },
-    },
+    }
   ),
   "moon-schrodinger-mare-north": createOverlayDetail(
     "moon",
@@ -309,7 +314,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 12,
         maxNativeZoom: 12,
       },
-    },
+    }
   ),
   "mars-gale-crater": createOverlayDetail(
     "mars",
@@ -329,7 +334,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 9,
         maxNativeZoom: 9,
       },
-    },
+    }
   ),
   "mars-jezero-delta": createOverlayDetail(
     "mars",
@@ -343,13 +348,14 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         targetZoom: 7,
       },
       wmts: {
-        endpoint: "https://trek.nasa.gov/tiles/Mars/EQ/JEZ_ctx_B_soc_008_orthoMosaic_6m_Eqc_latTs0_lon0",
+        endpoint:
+          "https://trek.nasa.gov/tiles/Mars/EQ/JEZ_ctx_B_soc_008_orthoMosaic_6m_Eqc_latTs0_lon0",
         bbox: JEZERO_DELTA_BOUNDS,
         minZoom: 4,
         maxZoom: 9,
         maxNativeZoom: 9,
       },
-    },
+    }
   ),
   "mars-olympus-mons": createOverlayDetail(
     "mars",
@@ -368,7 +374,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 9,
         maxNativeZoom: 9,
       },
-    },
+    }
   ),
   "vesta-rheasilvia-basin": createOverlayDetail(
     "vesta",
@@ -388,7 +394,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 8,
         maxNativeZoom: 8,
       },
-    },
+    }
   ),
   "vesta-marcia-crater": createOverlayDetail(
     "vesta",
@@ -407,7 +413,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 8,
         maxNativeZoom: 8,
       },
-    },
+    }
   ),
   "vesta-lucaria-tholi": createOverlayDetail(
     "vesta",
@@ -426,7 +432,7 @@ const PLANETARY_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = {
         maxZoom: 8,
         maxNativeZoom: 8,
       },
-    },
+    }
   ),
 };
 
@@ -437,9 +443,9 @@ export function getOverlayDetail(id: string) {
 }
 
 export function getOverlayDetailsByBody(body: PlanetaryBody) {
-  return PLANETARY_OVERLAY_IDS.map((id) => PLANETARY_OVERLAY_DETAILS[id]).filter(
-    (detail): detail is PlanetaryOverlayDetail => detail.body === body,
-  );
+  return PLANETARY_OVERLAY_IDS.map(
+    (id) => PLANETARY_OVERLAY_DETAILS[id]
+  ).filter((detail): detail is PlanetaryOverlayDetail => detail.body === body);
 }
 
 export function getOverlayRoute(id: string) {
@@ -450,12 +456,12 @@ export function getOverlayBody(id: string): PlanetaryBody | null {
   return getOverlayDetail(id)?.body ?? null;
 }
 
-export const LUNAR_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> = Object.fromEntries(
-  PLANETARY_OVERLAY_IDS.filter((id) => PLANETARY_OVERLAY_DETAILS[id].body === "moon").map((id) => [
-    id,
-    PLANETARY_OVERLAY_DETAILS[id],
-  ]),
-);
+export const LUNAR_OVERLAY_DETAILS: Record<string, PlanetaryOverlayDetail> =
+  Object.fromEntries(
+    PLANETARY_OVERLAY_IDS.filter(
+      (id) => PLANETARY_OVERLAY_DETAILS[id].body === "moon"
+    ).map((id) => [id, PLANETARY_OVERLAY_DETAILS[id]])
+  );
 
 export const LUNAR_OVERLAY_IDS = Object.keys(LUNAR_OVERLAY_DETAILS);
 
