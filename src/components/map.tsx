@@ -1,6 +1,6 @@
 "use client";
 
-import {memo, useCallback, useEffect, useMemo, useState} from "react";
+import {memo, useCallback, useEffect, useMemo, useRef, useState} from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -26,6 +26,19 @@ import {
   latLngBounds,
 } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import {
+  SCHRODINGER_BOUNDS,
+  SCHRODINGER_EXTRA_SWATHS_BOUNDS,
+  SCHRODINGER_LANDING_BOUNDS,
+  SCHRODINGER_MAIN_BOUNDS,
+  SCHRODINGER_MARE_NORTH_BOUNDS,
+  SCHRODINGER_MARE_UNIT_BOUNDS,
+  SCHRODINGER_MASSIF_BOUNDS,
+  SCHRODINGER_NE_BOUNDS,
+  SCHRODINGER_SC_BOUNDS,
+  SCHRODINGER_SE_BOUNDS,
+} from "@/lib/lunar-geometries";
+import {getLunarOverlayDetail} from "@/lib/lunar-overlays";
 
 type MarkerHoverInfo = {
   id: string;
@@ -40,6 +53,8 @@ type MapProps = {
   selectedLayer: string;
   onCursorMove?: (coords: {lat: number; lng: number} | null) => void;
   onMarkerHover?: (info: MarkerHoverInfo | null) => void;
+  onMarkerSelect?: (overlayId: string) => void;
+  detailOverlayId?: string | null;
   showHighlight?: boolean;
 };
 
@@ -93,63 +108,17 @@ function toLeafletBounds(bounds: LatLngBoundsExpression): LatLngBounds {
 }
 
 
-const EARTH_LAYER: LayerConfig = {
-  id: "earth",
-  url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-  attribution:
-    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-  tileOptions: {
-    maxZoom: 19,
-  },
-  view: {
-    center: [0, 0],
-    zoom: 2,
-    minZoom: 1,
-    maxZoom: 19,
-  },
-};
-
 const MOON_MAX_BOUNDS = latLngBounds([-90, -180], [90, 180]);
-const SCHRODINGER_BBOX = latLngBounds(
-  [-76.2155518, 127.1131997],
-  [-67.9997418, 160.0004541],
-);
-const SCHRODINGER_MAIN_BBOX = latLngBounds(
-  [-78.2671343, 137.0287022],
-  [-73.9217112, 143.9180335],
-);
-const SCHRODINGER_EXTRA_SWATHS_BBOX = latLngBounds(
-  [-81.0226752, 132.3933557],
-  [-74.763851, 146.0942538],
-);
-const SCHRODINGER_LANDING_BBOX = latLngBounds(
-  [-80.0432348, 137.9309074],
-  [-76.5686214, 143.5752726],
-);
-const SCHRODINGER_NE_BBOX = latLngBounds(
-  [-77.1212268, 135.7559975],
-  [-73.9041122, 142.7772635],
-);
-const SCHRODINGER_SC_BBOX = latLngBounds(
-  [-79.3372857, 133.1798311],
-  [-76.9185729, 147.6224657],
-);
-const SCHRODINGER_SE_BBOX = latLngBounds(
-  [-81.0676369, 143.1353647],
-  [-78.9801305, 147.9053389],
-);
-const SCHRODINGER_MARE_UNIT_BBOX = latLngBounds(
-  [-76.2155518, 127.1131997],
-  [-71.9095503, 137.3027779],
-);
-const SCHRODINGER_MASSIF_BBOX = latLngBounds(
-  [-76.8500136, 121.75],
-  [-74.35, 132.299979],
-);
-const SCHRODINGER_MARE_NORTH_BBOX = latLngBounds(
-  [-74.2213313, 132.7718919],
-  [-71.9685645, 137.1069797],
-);
+const SCHRODINGER_BBOX = latLngBounds(SCHRODINGER_BOUNDS);
+const SCHRODINGER_MAIN_BBOX = latLngBounds(SCHRODINGER_MAIN_BOUNDS);
+const SCHRODINGER_EXTRA_SWATHS_BBOX = latLngBounds(SCHRODINGER_EXTRA_SWATHS_BOUNDS);
+const SCHRODINGER_LANDING_BBOX = latLngBounds(SCHRODINGER_LANDING_BOUNDS);
+const SCHRODINGER_NE_BBOX = latLngBounds(SCHRODINGER_NE_BOUNDS);
+const SCHRODINGER_SC_BBOX = latLngBounds(SCHRODINGER_SC_BOUNDS);
+const SCHRODINGER_SE_BBOX = latLngBounds(SCHRODINGER_SE_BOUNDS);
+const SCHRODINGER_MARE_UNIT_BBOX = latLngBounds(SCHRODINGER_MARE_UNIT_BOUNDS);
+const SCHRODINGER_MASSIF_BBOX = latLngBounds(SCHRODINGER_MASSIF_BOUNDS);
+const SCHRODINGER_MARE_NORTH_BBOX = latLngBounds(SCHRODINGER_MARE_NORTH_BOUNDS);
 
 const MOON_LAYER: LayerConfig = {
   id: "moon",
@@ -176,7 +145,7 @@ const MOON_LAYER: LayerConfig = {
   overlays: [
     {
       id: "moon-schrodinger",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/allSchrodinger_10mV1.0.eq/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+      url: "https://trek.nasa.gov/tiles/Moon/EQ/allSchrodinger_10mV1.0.eq/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       attribution:
         'Schrödinger Crater imagery © NASA/JPL/USGS <a href="https://trek.nasa.gov/">Trek</a>',
       tileOptions: {
@@ -191,7 +160,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-nac",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_NAC_Schrodinger/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_NAC_Schrodinger/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 6,
         maxZoom: 12,
@@ -209,7 +178,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-extras",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.extraswaths.eq/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.extraswaths.eq/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 6,
         maxZoom: 11,
@@ -227,7 +196,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-landing",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_NAC_SchrodingerLandingSite2/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/LRO_NAC_SchrodingerLandingSite2/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 7,
         maxZoom: 12,
@@ -245,7 +214,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-ne",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.ne.equirect/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.ne.equirect/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 6,
         maxZoom: 11,
@@ -263,7 +232,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-sc",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.sc.equirect/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.sc.equirect/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 6,
         maxZoom: 11,
@@ -281,7 +250,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-se",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.se.equirect/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/schrodinger.se.equirect/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 7,
         maxZoom: 12,
@@ -299,7 +268,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-mare-unit",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMareUnit_50cmV1.0.eq/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMareUnit_50cmV1.0.eq/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 7,
         maxZoom: 12,
@@ -317,7 +286,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-massif",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMassif_50cmV1.0.eq/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerCraterMassif_50cmV1.0.eq/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 7,
         maxZoom: 12,
@@ -335,7 +304,7 @@ const MOON_LAYER: LayerConfig = {
     },
     {
       id: "moon-schrodinger-mare-north",
-      url: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerMareNorth.eq/1.0.0/default/default028mm/{z}/{y}/{x}.jpg",
+  url: "https://trek.nasa.gov/tiles/Moon/EQ/SchrodingerMareNorth.eq/1.0.0/default/default028mm/{z}/{y}/{x}.png",
       tileOptions: {
         minZoom: 7,
         maxZoom: 12,
@@ -420,7 +389,6 @@ const VESTA_LAYER: LayerConfig = {
 
 const LAYERS: Record<string, LayerConfig> = {
   default: MOON_LAYER,
-  earth: EARTH_LAYER,
   moon: MOON_LAYER,
   mars: MARS_LAYER,
   vesta: VESTA_LAYER,
@@ -477,13 +445,15 @@ type InteractiveMarkerDescriptor = {
 };
 
 const InteractiveOverlayMarkers = memo(function InteractiveOverlayMarkers({
-  overlays,
+  descriptors,
   enabled,
   onHover,
+  onSelect,
 }: {
-  overlays?: OverlayConfig[];
+  descriptors: InteractiveMarkerDescriptor[];
   enabled: boolean;
   onHover?: (info: MarkerHoverInfo | null) => void;
+  onSelect?: (overlayId: string) => void;
 }) {
   const map = useMap();
   const [zoom, setZoom] = useState(() => map.getZoom());
@@ -500,39 +470,6 @@ const InteractiveOverlayMarkers = memo(function InteractiveOverlayMarkers({
 
   }, [map]);
 
-  
-
-  const descriptors = useMemo<InteractiveMarkerDescriptor[]>(() => {
-    if (!overlays?.length) return [];
-
-    const result: InteractiveMarkerDescriptor[] = [];
-
-    for (const overlay of overlays) {
-      const interactive = overlay.interactive;
-      const boundsExpression = overlay.tileOptions?.bounds;
-
-      if (!interactive || !boundsExpression) {
-        continue;
-      }
-
-      const bounds = toLeafletBounds(boundsExpression);
-      const centerPoint = bounds.getCenter();
-
-      result.push({
-        id: overlay.id,
-        label: interactive.label,
-        bounds,
-        center: [centerPoint.lat, centerPoint.lng] as LatLngExpression,
-        activationZoom: interactive.activationZoom,
-        targetZoom: interactive.targetZoom,
-        maxZoom: overlay.tileOptions?.maxZoom,
-        maxNativeZoom: overlay.tileOptions?.maxNativeZoom,
-      });
-    }
-
-    return result;
-  }, [overlays]);
-  
   useEffect(() => {
     if (!enabled) {
       onHover?.(null);
@@ -568,8 +505,10 @@ const InteractiveOverlayMarkers = memo(function InteractiveOverlayMarkers({
         paddingTopLeft: [56, 72],
         paddingBottomRight: [56, 48],
       });
+
+      onSelect?.(descriptor.id);
     },
-    [map],
+    [map, onSelect],
   );
 
   if (!enabled || !descriptors.length) {
@@ -659,7 +598,94 @@ const InteractiveOverlayMarkers = memo(function InteractiveOverlayMarkers({
 
 InteractiveOverlayMarkers.displayName = "InteractiveOverlayMarkers";
 
-export default function Map({selectedLayer, onCursorMove, onMarkerHover, showHighlight = true}: MapProps) {
+function DetailZoomController({
+  descriptor,
+  layer,
+}: {
+  descriptor?: InteractiveMarkerDescriptor;
+  layer: LayerConfig;
+}) {
+  const map = useMap();
+  const lastDetailId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!descriptor) {
+      lastDetailId.current = null;
+      return;
+    }
+    if (layer.id !== "moon") return;
+
+    if (lastDetailId.current === descriptor.id) {
+      return;
+    }
+
+    lastDetailId.current = descriptor.id;
+
+    const {bounds, targetZoom, activationZoom, maxZoom, maxNativeZoom} = descriptor;
+
+    let desiredZoom = targetZoom ?? activationZoom + 2;
+
+    if (typeof maxZoom === "number" && maxZoom < desiredZoom) {
+      desiredZoom = maxZoom;
+    }
+    if (typeof maxNativeZoom === "number" && maxNativeZoom < desiredZoom) {
+      desiredZoom = maxNativeZoom;
+    }
+
+    const mapMaxZoom = map.getMaxZoom();
+    if (typeof mapMaxZoom === "number" && Number.isFinite(mapMaxZoom) && mapMaxZoom < desiredZoom) {
+      desiredZoom = mapMaxZoom;
+    }
+
+    map.flyToBounds(bounds, {
+      maxZoom: desiredZoom,
+      duration: 1.2,
+      easeLinearity: 0.25,
+      paddingTopLeft: [56, 72],
+      paddingBottomRight: [56, 48],
+    });
+  }, [descriptor, layer, map]);
+
+  return null;
+}
+
+function OverviewResetController({
+  detailOverlayId,
+  layer,
+}: {
+  detailOverlayId: string | null;
+  layer: LayerConfig;
+}) {
+  const map = useMap();
+  const previousDetailId = useRef<string | null>(null);
+
+  useEffect(() => {
+    const previous = previousDetailId.current;
+    previousDetailId.current = detailOverlayId;
+
+    if (layer.id !== "moon") {
+      return;
+    }
+
+    if (previous && !detailOverlayId) {
+      map.flyTo(layer.view.center as LatLngExpression, layer.view.zoom, {
+        duration: 1.1,
+        easeLinearity: 0.25,
+      });
+    }
+  }, [detailOverlayId, layer, map]);
+
+  return null;
+}
+
+export default function Map({
+  selectedLayer,
+  onCursorMove,
+  onMarkerHover,
+  onMarkerSelect,
+  detailOverlayId = null,
+  showHighlight = true,
+}: MapProps) {
   const layer = LAYERS[selectedLayer] ?? LAYERS.default;
   const {
     view,
@@ -670,8 +696,46 @@ export default function Map({selectedLayer, onCursorMove, onMarkerHover, showHig
     overlays,
     highlight,
   } = layer;
-  const hasInteractiveOverlays =
-    overlays?.some((overlay) => overlay.interactive && overlay.tileOptions?.bounds) ?? false;
+  const interactiveDescriptors = useMemo<InteractiveMarkerDescriptor[]>(() => {
+    if (!overlays?.length) return [];
+
+    const result: InteractiveMarkerDescriptor[] = [];
+
+    for (const overlay of overlays) {
+      const interactive = overlay.interactive;
+      const boundsExpression = overlay.tileOptions?.bounds;
+
+      if (!interactive || !boundsExpression) {
+        continue;
+      }
+
+      const bounds = toLeafletBounds(boundsExpression);
+      const centerPoint = bounds.getCenter();
+
+      result.push({
+        id: overlay.id,
+        label: interactive.label,
+        bounds,
+        center: [centerPoint.lat, centerPoint.lng] as LatLngExpression,
+        activationZoom: interactive.activationZoom,
+        targetZoom: interactive.targetZoom,
+        maxZoom: overlay.tileOptions?.maxZoom,
+        maxNativeZoom: overlay.tileOptions?.maxNativeZoom,
+      });
+    }
+
+    return result;
+  }, [overlays]);
+
+  const hasInteractiveOverlays = interactiveDescriptors.length > 0;
+
+  const detailDescriptor = useMemo<InteractiveMarkerDescriptor | undefined>(() => {
+    if (!detailOverlayId) return undefined;
+    return interactiveDescriptors.find((descriptor) => descriptor.id === detailOverlayId) ?? undefined;
+  }, [detailOverlayId, interactiveDescriptors]);
+
+  const detailMeta = detailOverlayId ? getLunarOverlayDetail(detailOverlayId) : undefined;
+  const detailWmts = detailMeta?.wmts;
 
   return (
     <MapContainer
@@ -687,24 +751,47 @@ export default function Map({selectedLayer, onCursorMove, onMarkerHover, showHig
     >
       <MapResizer />
       <MapCursorTracker onMove={onCursorMove} />
+      <DetailZoomController descriptor={detailDescriptor} layer={layer} />
+      <OverviewResetController detailOverlayId={detailOverlayId ?? null} layer={layer} />
       <TileLayer
         attribution={attribution}
         url={url}
         {...tileOptions}
       />
-      {overlays?.map((overlay) => (
+      {detailWmts && (
         <TileLayer
-          key={`${layer.id}-${overlay.id}`}
-          attribution={overlay.attribution ?? attribution}
-          url={overlay.url}
-          {...overlay.tileOptions}
+          key={`${detailMeta?.id}-detail-layer`}
+          attribution={attribution}
+          url={`${detailWmts.endpoint}/1.0.0/${detailWmts.style ?? "default"}/${detailWmts.tileMatrixSet ?? "default028mm"}/{z}/{y}/{x}.${detailWmts.format ?? "png"}`}
+          bounds={detailWmts.bbox}
+          noWrap
+          opacity={1}
+          zIndex={525}
+          maxZoom={detailWmts.maxZoom ?? tileOptions?.maxZoom}
+          maxNativeZoom={detailWmts.maxNativeZoom ?? tileOptions?.maxNativeZoom}
+          minZoom={detailWmts.minZoom ?? tileOptions?.minZoom}
         />
-      ))}
+      )}
+      {overlays?.map((overlay) => {
+        if (overlay.id === detailOverlayId) {
+          return null;
+        }
+
+        return (
+          <TileLayer
+            key={`${layer.id}-${overlay.id}`}
+            attribution={overlay.attribution ?? attribution}
+            url={overlay.url}
+            {...overlay.tileOptions}
+          />
+        );
+      })}
       {showHighlight && hasInteractiveOverlays && (
         <InteractiveOverlayMarkers
-          overlays={overlays}
+          descriptors={interactiveDescriptors}
           enabled={showHighlight}
           onHover={showHighlight ? onMarkerHover : undefined}
+          onSelect={onMarkerSelect}
         />
       )}
       {showHighlight && !hasInteractiveOverlays && highlight && (

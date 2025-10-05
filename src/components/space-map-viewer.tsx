@@ -1,10 +1,9 @@
 "use client";
 
-import {useEffect, useState} from "react";
+import {useCallback, useEffect} from "react";
 import dynamic from "next/dynamic";
-import {MapControls} from "./map-controls";
-import {MapHeader} from "./map-header";
 import {Loader2} from "lucide-react";
+import {useMapUI} from "@/context/map-ui-context";
 
 // Dynamically import the map component to avoid SSR issues with Leaflet
 const Map = dynamic(() => import("./map"), {
@@ -19,22 +18,15 @@ const Map = dynamic(() => import("./map"), {
   ),
 });
 
-
-
 export function SpaceMapViewer() {
-  const [selectedLayer, setSelectedLayer] = useState("moon");
-  const [cursorPosition, setCursorPosition] = useState<{
-    lat: number;
-    lng: number;
-  } | null>(null);
-  const [hoveredOverlay, setHoveredOverlay] = useState<{
-    id: string;
-    label: string;
-    activationZoom: number;
-    targetZoom?: number;
-    maxZoom?: number;
-    maxNativeZoom?: number;
-  } | null>(null);
+  const {
+    selectedLayer,
+    setCursorPosition,
+    setHoveredOverlay,
+    detailOverlayId,
+    requestNavigation,
+    setDetailOverlayId,
+  } = useMapUI();
 
   const overlayDetailsAvailable = selectedLayer === "moon";
 
@@ -42,49 +34,27 @@ export function SpaceMapViewer() {
     if (!overlayDetailsAvailable) {
       setHoveredOverlay(null);
     }
-  }, [overlayDetailsAvailable]);
+  }, [overlayDetailsAvailable, setHoveredOverlay]);
 
-  // useEffect(() => {
-  //   let mounted = true;
-  //   let objectUrl: string | null = null;
-  
-  //   (async () => {
-  //     try {
-  //       const res = await fetch(
-  //         `http://moontrek.jpl.nasa.gov/trektiles/Moon/EQ/LRO_WAC_Mosaic_Global_303ppd_v02/1.0.0/default/default028mm/0/0/0.jpg`
-  //        );
-  //       const blob = await res.blob();
-  //       objectUrl = URL.createObjectURL(blob);
-  //       if (mounted) setImageUrl(objectUrl);
-  //     } catch (e) {
-  //       console.error("Failed to fetch preview image", e);
-  //     }
-  //   })();
-
-  //   return () => {
-  //     mounted = false;
-  //     if (objectUrl) URL.revokeObjectURL(objectUrl);
-  //   };
-  // }, []);
+  const handleMarkerSelect = useCallback(
+    (overlayId: string) => {
+      setDetailOverlayId(overlayId);
+      requestNavigation({type: "detail", overlayId, route: `/moon/${overlayId}`});
+    },
+    [requestNavigation, setDetailOverlayId],
+  );
 
   return (
     <div className="relative flex min-h-[100svh] w-full flex-1 flex-col overflow-hidden">
-      <MapHeader />
-
       <div className="relative flex-1">
         <Map
           selectedLayer={selectedLayer}
           onCursorMove={setCursorPosition}
           onMarkerHover={overlayDetailsAvailable ? setHoveredOverlay : undefined}
+          onMarkerSelect={overlayDetailsAvailable ? handleMarkerSelect : undefined}
+          detailOverlayId={overlayDetailsAvailable ? detailOverlayId : null}
         />
       </div>
-
-      <MapControls
-        selectedLayer={selectedLayer}
-        onLayerChange={setSelectedLayer}
-        cursorPosition={cursorPosition}
-        hoveredOverlay={overlayDetailsAvailable ? hoveredOverlay : null}
-      />
     </div>
   );
 }
