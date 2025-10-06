@@ -3,7 +3,7 @@
 # SkyPixel
 _Planet-to-pixel exploration for the Artemis generation_
 
-![SkyPixel hero](./public/globe.svg)
+![SkyPixel hero](./public/icon.png)
 
 </div>
 
