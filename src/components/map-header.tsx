@@ -1,7 +1,8 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {ArrowLeft, ChevronDown, ChevronUp, Rocket} from "lucide-react";
+import Image from "next/image";
+import {ArrowLeft, ChevronDown, ChevronUp} from "lucide-react";
 import {useMapUI} from "@/context/map-ui-context";
 import {getOverlayDetail, type PlanetaryBody} from "@/lib/lunar-overlays";
 
@@ -37,8 +38,8 @@ export function MapHeader() {
       <div className="pointer-events-auto mx-auto max-w-7xl">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary shadow-lg shadow-primary/30">
-              <Rocket className="h-5 w-5 text-primary-foreground" />
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary shadow-lg shadow-primary/30">
+              <Image src="/icon.png" alt="SkyPixel logo" width={32} height={32} className="h-8 w-8 object-contain" priority />
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">Skypixel</h1>
